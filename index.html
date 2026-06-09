@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>mentions.co.za · upload</title>
+<style>
+  :root {
+    --teal-50: #E1F5EE;
+    --teal-100: #9FE1CB;
+    --teal-400: #1D9E75;
+    --teal-600: #0F6E56;
+    --teal-800: #085041;
+    --teal-900: #04342C;
+    --gray-50: #F1EFE8;
+    --gray-100: #D3D1C7;
+    --gray-200: #B4B2A9;
+    --gray-400: #888780;
+    --gray-800: #444441;
+    --amber-50: #FAEEDA;
+    --amber-400: #EF9F27;
+    --amber-600: #854F0B;
+    --coral-50: #FAECE7;
+    --coral-400: #D85A30;
+    --coral-600: #993C1D;
+    --purple-50: #EEEDFE;
+    --purple-400: #7F77DD;
+    --purple-600: #534AB7;
+    --bg: #ffffff;
+    --bg2: #F8F7F4;
+    --bg3: #F1EFE8;
+    --text: #1a1a18;
+    --text2: #5F5E5A;
+    --text3: #888780;
+    --border: rgba(0,0,0,0.1);
+    --border2: rgba(0,0,0,0.18);
+    --radius: 10px;
+    --radius-lg: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a;
+      --bg2: #242422;
+      --bg3: #2c2c2a;
+      --text: #e8e6df;
+      --text2: #9e9c95;
+      --text3: #666460;
+      --border: rgba(255,255,255,0.1);
+      --border2: rgba(255,255,255,0.18);
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg2); color: var(--text); min-height: 100vh; }
+
+  .topbar { background: var(--bg); border-bottom: 0.5px solid var(--border); padding: 0 24px; height: 52px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .wordmark { font-size: 15px; font-weight: 600; color: var(--teal-600); letter-spacing: -0.02em; }
+  .wordmark span { color: var(--teal-400); }
+  .topbar-right { font-size: 12px; color: var(--text3); }
+
+  .main { max-width: 860px; margin: 0 auto; padding: 32px 20px 60px; }
+
+  .page-hero { margin-bottom: 32px; }
+  .page-hero h1 { font-size: 26px; font-weight: 600; letter-spacing: -0.03em; color: var(--text); margin-bottom: 6px; }
+  .page-hero p { font-size: 14px; color: var(--text2); line-height: 1.6; }
+
+  .upload-zone { border: 1.5px dashed var(--teal-100); border-radius: var(--radius-lg); background: var(--teal-50); padding: 40px 24px; text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s; margin-bottom: 20px; }
+  .upload-zone:hover, .upload-zone.dragover { border-color: var(--teal-400); background: #d0f0e5; }
+  .upload-zone.has-file { border-style: solid; border-color: var(--teal-400); background: #d8f5ec; }
+  @media (prefers-color-scheme: dark) {
+    .upload-zone { background: #0a2e22; border-color: #1D9E75; }
+    .upload-zone:hover, .upload-zone.dragover { background: #0d3a2b; }
+    .upload-zone.has-file { background: #0d3a2b; }
+  }
+  .upload-icon { font-size: 36px; margin-bottom: 10px; }
+  .upload-zone h2 { font-size: 16px; font-weight: 600; color: var(--teal-800); margin-bottom: 4px; }
+  .upload-zone p { font-size: 13px; color: var(--teal-600); }
+  @media (prefers-color-scheme: dark) {
+    .upload-zone h2 { color: var(--teal-100); }
+    .upload-zone p { color: var(--teal-100); }
+  }
+  #file-input { display: none; }
+  .file-name { font-size: 13px; font-weight: 500; color: var(--teal-600); margin-top: 8px; }
+
+  .options-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  .option-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+  .option-card label { font-size: 12px; font-weight: 500; color: var(--text2); display: block; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .option-card select, .option-card input[type=text] { width: 100%; font-size: 13px; color: var(--text); background: var(--bg2); border: 0.5px solid var(--border2); border-radius: 6px; padding: 7px 10px; outline: none; }
+  .option-card select:focus, .option-card input:focus { border-color: var(--teal-400); }
+
+  .parse-btn { width: 100%; padding: 14px; background: var(--teal-400); color: white; border: none; border-radius: var(--radius); font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.15s, transform 0.1s; letter-spacing: -0.01em; margin-bottom: 12px; }
+  .parse-btn:hover { background: var(--teal-600); }
+  .parse-btn:active { transform: scale(0.99); }
+  .parse-btn:disabled { background: var(--gray-200); cursor: not-allowed; }
+
+  .status-bar { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 12px 16px; font-size: 13px; color: var(--text2); display: none; margin-bottom: 20px; align-items: center; gap: 10px; }
+  .status-bar.visible { display: flex; }
+  .spinner { width: 16px; height: 16px; border: 2px solid var(--teal-100); border-top-color: var(--teal-400); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .status-bar.done { border-color: var(--teal-100); background: var(--teal-50); }
+  @media (prefers-color-scheme: dark) { .status-bar.done { background: #0a2e22; } }
+  .status-bar.done .spinner { display: none; }
+  .status-check { width: 16px; height: 16px; border-radius: 50%; background: var(--teal-400); color: white; font-size: 10px; display: none; align-items: center; justify-content: center; flex-shrink: 0; }
+  .status-bar.done .status-check { display: flex; }
+
+  .results-section { display: none; }
+  .results-section.visible { display: block; }
+
+  .results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: gap; gap: 10px; }
+  .results-header h2 { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
+  .export-row { display: flex; gap: 8px; }
+  .btn-sm { font-size: 12px; font-weight: 500; padding: 7px 14px; border-radius: 7px; cursor: pointer; border: 0.5px solid var(--border2); background: var(--bg); color: var(--text); transition: background 0.12s; white-space: nowrap; }
+  .btn-sm:hover { background: var(--bg3); }
+  .btn-sm.primary { background: var(--teal-400); color: white; border-color: var(--teal-400); }
+  .btn-sm.primary:hover { background: var(--teal-600); }
+
+  .summary-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 24px; }
+  .stat-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+  .stat-num { font-size: 24px; font-weight: 600; color: var(--teal-400); letter-spacing: -0.04em; }
+  .stat-label { font-size: 11px; color: var(--text3); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  .category-block { margin-bottom: 20px; }
+  .cat-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 0.5px solid var(--border); }
+  .cat-name { font-size: 14px; font-weight: 600; color: var(--text); }
+  .cat-count { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 10px; background: var(--teal-50); color: var(--teal-800); }
+  @media (prefers-color-scheme: dark) { .cat-count { background: #0a2e22; color: var(--teal-100); } }
+
+  .contact-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+  .contact-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 14px 16px; transition: border-color 0.12s; }
+  .contact-card:hover { border-color: var(--teal-100); }
+  .cc-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .cc-name { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.3; }
+  .cc-badge { font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 8px; white-space: nowrap; flex-shrink: 0; }
+  .badge-vendor { background: var(--amber-50); color: var(--amber-600); }
+  .badge-service { background: var(--purple-50); color: var(--purple-600); }
+  .badge-business { background: var(--teal-50); color: var(--teal-600); }
+  .badge-community { background: var(--coral-50); color: var(--coral-600); }
+  .badge-other { background: var(--gray-50); color: var(--gray-800); }
+  @media (prefers-color-scheme: dark) {
+    .badge-vendor { background: #2a1e06; color: #FAC775; }
+    .badge-service { background: #1a1840; color: #AFA9EC; }
+    .badge-business { background: #0a2e22; color: #9FE1CB; }
+    .badge-community { background: #2a1008; color: #F0997B; }
+    .badge-other { background: #2c2c2a; color: #B4B2A9; }
+  }
+  .cc-field { font-size: 12px; color: var(--text2); margin-bottom: 3px; display: flex; align-items: baseline; gap: 5px; }
+  .cc-field-label { color: var(--text3); min-width: 46px; flex-shrink: 0; }
+  .cc-field-val { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cc-note { font-size: 11px; color: var(--text3); margin-top: 6px; padding-top: 6px; border-top: 0.5px solid var(--border); line-height: 1.5; font-style: italic; }
+  .cc-mentions { font-size: 11px; font-weight: 500; color: var(--teal-600); margin-top: 4px; }
+  .cc-actions { display: flex; gap: 6px; margin-top: 8px; }
+  .cc-btn { font-size: 11px; padding: 4px 9px; border-radius: 5px; border: 0.5px solid var(--border2); background: transparent; color: var(--text2); cursor: pointer; transition: all 0.1s; }
+  .cc-btn:hover { background: var(--bg3); color: var(--text); }
+  .cc-btn.teal { border-color: var(--teal-100); color: var(--teal-600); }
+  .cc-btn.teal:hover { background: var(--teal-50); }
+
+  .wa-preview { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-top: 28px; }
+  .wa-preview-title { font-size: 13px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .wa-preview-title::after { content: ''; flex: 1; height: 0.5px; background: var(--border); }
+  .wa-bubble { background: #e9fde4; border-radius: 12px 12px 4px 12px; padding: 14px 16px; max-width: 400px; }
+  @media (prefers-color-scheme: dark) { .wa-bubble { background: #1a3520; } }
+  .wa-header-line { font-size: 12px; font-weight: 600; color: var(--teal-600); margin-bottom: 10px; }
+  .wa-cat { margin-bottom: 7px; }
+  .wa-cat-name { font-size: 12px; font-weight: 600; color: #1a6b2f; margin-bottom: 3px; }
+  @media (prefers-color-scheme: dark) { .wa-cat-name { color: var(--teal-100); } }
+  .wa-links { display: flex; flex-wrap: wrap; gap: 2px 8px; }
+  .wa-link { font-size: 12px; color: #0f7fd4; text-decoration: underline; cursor: pointer; }
+  .wa-footer { font-size: 10px; color: #7a9e82; margin-top: 10px; padding-top: 8px; border-top: 0.5px solid #c3f0b0; }
+  @media (prefers-color-scheme: dark) { .wa-footer { color: var(--teal-100); border-color: #1D9E75; } }
+
+  .error-box { background: #FAECE7; border: 0.5px solid #F0997B; border-radius: var(--radius); padding: 14px 16px; font-size: 13px; color: var(--coral-600); display: none; margin-bottom: 16px; }
+  .error-box.visible { display: block; }
+  @media (prefers-color-scheme: dark) { .error-box { background: #2a1008; color: #F0997B; border-color: #993C1D; } }
+
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--text3); font-size: 14px; }
+
+  @media (max-width: 600px) {
+    .options-row { grid-template-columns: 1fr; }
+    .summary-stats { grid-template-columns: repeat(2, 1fr); }
+    .results-header { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wordmark">mentions<span>.co.za</span></div>
+  <div class="topbar-right">upload &amp; parse</div>
+</div>
+
+<div class="main">
+  <div class="page-hero">
+    <h1>Upload your WhatsApp export</h1>
+    <p>Drop your .txt chat export and Claude will extract every vendor, service, and business contact — categorised and ready for your directory.</p>
+  </div>
+
+  <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
+    <div class="upload-icon">📄</div>
+    <h2>Drop your WhatsApp .txt export here</h2>
+    <p>or click to browse · only the text file is needed, no media required</p>
+    <div class="file-name" id="file-name"></div>
+    <input type="file" id="file-input" accept=".txt">
+  </div>
+
+  <div class="options-row">
+    <div class="option-card">
+      <label>Group / source name</label>
+      <input type="text" id="group-name" placeholder="e.g. Mentions Plett" value="Mentions Plett">
+    </div>
+    <div class="option-card">
+      <label>Export detail level</label>
+      <select id="detail-level">
+        <option value="full">Full — extract all contact details</option>
+        <option value="names">Names only — quick scan</option>
+      </select>
+    </div>
+  </div>
+
+  <button class="parse-btn" id="parse-btn" disabled onclick="runParse()">Parse chat &amp; extract contacts</button>
+
+  <div class="error-box" id="error-box"></div>
+
+  <div class="status-bar" id="status-bar">
+    <div class="spinner"></div>
+    <div class="status-check">✓</div>
+    <span id="status-text">Reading chat file…</span>
+  </div>
+
+  <div class="results-section" id="results-section">
+    <div class="results-header">
+      <h2>Extracted contacts</h2>
+      <div class="export-row">
+        <button class="btn-sm" onclick="exportVCF()">Export .vcf</button>
+        <button class="btn-sm" onclick="copyWAMessage()">Copy WA message</button>
+        <button class="btn-sm primary" onclick="showWAPreview()">Preview WA digest</button>
+      </div>
+    </div>
+
+    <div class="summary-stats" id="summary-stats"></div>
+    <div id="categories-output"></div>
+
+    <div class="wa-preview" id="wa-preview" style="display:none">
+      <div class="wa-preview-title">WhatsApp digest preview</div>
+      <div class="wa-bubble" id="wa-bubble-content"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let parsedContacts = [];
+let chatText = '';
+
+const uploadZone = document.getElementById('upload-zone');
+const fileInput = document.getElementById('file-input');
+const parseBtn = document.getElementById('parse-btn');
+const statusBar = document.getElementById('status-bar');
+const statusText = document.getElementById('status-text');
+const errorBox = document.getElementById('error-box');
+
+fileInput.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (file) loadFile(file);
+});
+
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file && file.name.endsWith('.txt')) loadFile(file);
+});
+
+function loadFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    chatText = e.target.result;
+    document.getElementById('file-name').textContent = '✓ ' + file.name + ' (' + Math.round(file.size / 1024) + ' KB)';
+    uploadZone.classList.add('has-file');
+    parseBtn.disabled = false;
+  };
+  reader.readAsText(file);
+}
+
+function setStatus(msg, done = false) {
+  statusBar.classList.add('visible');
+  statusBar.classList.toggle('done', done);
+  statusText.textContent = msg;
+}
+
+function showError(msg) {
+  errorBox.textContent = msg;
+  errorBox.classList.add('visible');
+}
+
+function hideError() {
+  errorBox.classList.remove('visible');
+}
+
+async function runParse() {
+  if (!chatText) return;
+  hideError();
+  parseBtn.disabled = true;
+  document.getElementById('results-section').classList.remove('visible');
+  setStatus('Sending to Claude for analysis…');
+
+  const groupName = document.getElementById('group-name').value || 'Mentions';
+  const detail = document.getElementById('detail-level').value;
+
+  const excerpt = chatText.slice(0, 28000);
+
+  const systemPrompt = `You are a contact extractor for mentions.co.za, a local business directory powered by WhatsApp chat exports from the Plettenberg Bay area (South Africa).
+
+Extract every vendor, service provider, and business mentioned in the chat. Return ONLY valid JSON — no markdown, no preamble, no explanation.
+
+Return this structure:
+{
+  "group": "<group name>",
+  "extracted_at": "<ISO date>",
+  "contacts": [
+    {
+      "name": "<business name>",
+      "category": "<one of: Restaurants, Groceries & Farm, Services, Arts & Shops, Pets & Care, Community, Tech, Health & Medical, Other>",
+      "type": "<one of: vendor, service, business>",
+      "phone": "<phone number or null>",
+      "email": "<email or null>",
+      "website": "<website or null>",
+      "address": "<address or null>",
+      "description": "<1-2 sentence description from context or null>",
+      "tags": ["<tag1>", "<tag2>"],
+      "mentions": <integer count of how many times this entity is mentioned>,
+      "sentiment": "<positive, neutral, or mixed>"
+    }
+  ]
+}
+
+Rules:
+- Only extract real businesses, vendors, services — not personal names unless they are operating as a service (e.g. "Benson Handyman")
+- If a phone number appears near a business name, assign it
+- Count how many distinct messages mention each business
+- Categories must be exactly as listed above
+- Return only JSON, nothing else`;
+
+  const userPrompt = `Group name: ${groupName}
+Detail level: ${detail}
+
+Chat export:
+${excerpt}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }]
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || 'API error ' + res.status);
+    }
+
+    setStatus('Processing results…');
+    const data = await res.json();
+    const raw = data.content.map(b => b.text || '').join('');
+
+    let parsed;
+    try {
+      const clean = raw.replace(/```json|```/g, '').trim();
+      parsed = JSON.parse(clean);
+    } catch {
+      throw new Error('Could not parse Claude\'s response. Try again or use a shorter export.');
+    }
+
+    parsedContacts = parsed.contacts || [];
+
+    if (parsedContacts.length === 0) {
+      throw new Error('No business contacts found. Make sure this is a WhatsApp group chat export with business mentions.');
+    }
+
+    setStatus('Done — ' + parsedContacts.length + ' contacts extracted', true);
+    renderResults(parsed);
+
+  } catch (err) {
+    setStatus('');
+    statusBar.classList.remove('visible');
+    showError('Error: ' + err.message);
+    parseBtn.disabled = false;
+  }
+}
+
+const CAT_ICONS = {
+  'Restaurants': '🍽',
+  'Groceries & Farm': '🛒',
+  'Services': '🔧',
+  'Arts & Shops': '🎨',
+  'Pets & Care': '🐾',
+  'Community': '🌱',
+  'Tech': '📡',
+  'Health & Medical': '🏥',
+  'Other': '📌'
+};
+
+const TYPE_BADGE = {
+  'vendor': 'badge-vendor',
+  'service': 'badge-service',
+  'business': 'badge-business',
+  'community': 'badge-community'
+};
+
+function renderResults(data) {
+  const section = document.getElementById('results-section');
+  section.classList.add('visible');
+
+  const cats = {};
+  parsedContacts.forEach(c => {
+    const cat = c.category || 'Other';
+    if (!cats[cat]) cats[cat] = [];
+    cats[cat].push(c);
+  });
+
+  const totalMentions = parsedContacts.reduce((s, c) => s + (c.mentions || 1), 0);
+  const withPhone = parsedContacts.filter(c => c.phone).length;
+
+  document.getElementById('summary-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-num">${parsedContacts.length}</div><div class="stat-label">contacts found</div></div>
+    <div class="stat-card"><div class="stat-num">${Object.keys(cats).length}</div><div class="stat-label">categories</div></div>
+    <div class="stat-card"><div class="stat-num">${totalMentions}</div><div class="stat-label">total mentions</div></div>
+    <div class="stat-card"><div class="stat-num">${withPhone}</div><div class="stat-label">with phone</div></div>
+  `;
+
+  const out = document.getElementById('categories-output');
+  out.innerHTML = '';
+
+  const catOrder = ['Restaurants','Groceries & Farm','Services','Arts & Shops','Pets & Care','Community','Tech','Health & Medical','Other'];
+  const sortedCats = catOrder.filter(c => cats[c]).concat(Object.keys(cats).filter(c => !catOrder.includes(c)));
+
+  sortedCats.forEach(catName => {
+    const contacts = cats[catName];
+    const icon = CAT_ICONS[catName] || '📌';
+    const block = document.createElement('div');
+    block.className = 'category-block';
+    block.innerHTML = `
+      <div class="cat-header">
+        <span style="font-size:16px">${icon}</span>
+        <span class="cat-name">${catName}</span>
+        <span class="cat-count">${contacts.length}</span>
+      </div>
+      <div class="contact-grid" id="grid-${catName.replace(/\W/g,'_')}"></div>
+    `;
+    out.appendChild(block);
+
+    const grid = block.querySelector('.contact-grid');
+    contacts.forEach(c => {
+      const badgeClass = TYPE_BADGE[c.type] || 'badge-other';
+      const card = document.createElement('div');
+      card.className = 'contact-card';
+      card.innerHTML = `
+        <div class="cc-top">
+          <div class="cc-name">${escHtml(c.name)}</div>
+          <span class="cc-badge ${badgeClass}">${c.type || 'business'}</span>
+        </div>
+        ${c.phone ? `<div class="cc-field"><span class="cc-field-label">Phone</span><span class="cc-field-val">${escHtml(c.phone)}</span></div>` : ''}
+        ${c.email ? `<div class="cc-field"><span class="cc-field-label">Email</span><span class="cc-field-val">${escHtml(c.email)}</span></div>` : ''}
+        ${c.website ? `<div class="cc-field"><span class="cc-field-label">Web</span><span class="cc-field-val">${escHtml(c.website)}</span></div>` : ''}
+        ${c.address ? `<div class="cc-field"><span class="cc-field-label">Address</span><span class="cc-field-val">${escHtml(c.address)}</span></div>` : ''}
+        ${c.description ? `<div class="cc-note">${escHtml(c.description)}</div>` : ''}
+        ${c.mentions ? `<div class="cc-mentions">↗ ${c.mentions} mention${c.mentions !== 1 ? 's' : ''}</div>` : ''}
+        <div class="cc-actions">
+          <button class="cc-btn teal" onclick="copyVCF(${JSON.stringify(c).replace(/"/g,'&quot;')})">Copy vCard</button>
+          <button class="cc-btn" onclick="openLandingPreview(${JSON.stringify(c).replace(/"/g,'&quot;')})">Preview page</button>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+  });
+}
+
+function escHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function generateVCF(contacts) {
+  return contacts.map(c => {
+    const slug = (c.name || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+    let vcf = 'BEGIN:VCARD\nVERSION:3.0\n';
+    vcf += `FN:${c.name || ''}\n`;
+    vcf += `ORG:${c.name || ''}\n`;
+    if (c.phone) vcf += `TEL;TYPE=CELL:${c.phone}\n`;
+    if (c.email) vcf += `EMAIL:${c.email}\n`;
+    if (c.website) vcf += `URL:${c.website}\n`;
+    if (c.address) vcf += `ADR:;;${c.address};;;;\n`;
+    vcf += `NOTE:mentions.co.za/v/${slug} | Category: ${c.category || ''} | Mentions: ${c.mentions || 0}\n`;
+    vcf += `CATEGORIES:${c.category || 'Other'}\n`;
+    vcf += 'END:VCARD';
+    return vcf;
+  }).join('\n\n');
+}
+
+function exportVCF() {
+  if (!parsedContacts.length) return;
+  const vcf = generateVCF(parsedContacts);
+  const blob = new Blob([vcf], { type: 'text/vcard' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'mentions-contacts.vcf';
+  a.click();
+}
+
+function copyVCF(contact) {
+  const vcf = generateVCF([contact]);
+  navigator.clipboard.writeText(vcf).then(() => {
+    showToast('vCard copied');
+  });
+}
+
+function buildWAMessage() {
+  const cats = {};
+  parsedContacts.forEach(c => {
+    const cat = c.category || 'Other';
+    if (!cats[cat]) cats[cat] = [];
+    cats[cat].push(c);
+  });
+
+  const icon = CAT_ICONS;
+  const date = new Date().toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' });
+  let msg = `mentions.co.za · ${document.getElementById('group-name').value || 'Mentions'} · ${date}\n\n`;
+
+  const catOrder = ['Restaurants','Groceries & Farm','Services','Arts & Shops','Pets & Care','Community','Tech','Health & Medical','Other'];
+  const sortedCats = catOrder.filter(c => cats[c]).concat(Object.keys(cats).filter(c => !catOrder.includes(c)));
+
+  sortedCats.forEach(cat => {
+    const contacts = cats[cat];
+    msg += `${icon[cat] || '📌'} *${cat}*\n`;
+    contacts.forEach(c => {
+      const slug = (c.name || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+      msg += `• ${c.name} — mentions.co.za/v/${slug}\n`;
+    });
+    msg += '\n';
+  });
+
+  msg += '_Full directory at mentions.co.za · tap any name to view their page_';
+  return msg;
+}
+
+function copyWAMessage() {
+  if (!parsedContacts.length) return;
+  navigator.clipboard.writeText(buildWAMessage()).then(() => {
+    showToast('WA message copied to clipboard');
+  });
+}
+
+function showWAPreview() {
+  const preview = document.getElementById('wa-preview');
+  const bubble = document.getElementById('wa-bubble-content');
+  preview.style.display = preview.style.display === 'none' ? 'block' : 'none';
+  if (preview.style.display === 'none') return;
+
+  const cats = {};
+  parsedContacts.forEach(c => {
+    const cat = c.category || 'Other';
+    if (!cats[cat]) cats[cat] = [];
+    cats[cat].push(c);
+  });
+
+  const date = new Date().toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' });
+  const catOrder = ['Restaurants','Groceries & Farm','Services','Arts & Shops','Pets & Care','Community','Tech','Health & Medical','Other'];
+  const sortedCats = catOrder.filter(c => cats[c]).concat(Object.keys(cats).filter(c => !catOrder.includes(c)));
+
+  let html = `<div class="wa-header-line">mentions.co.za · ${escHtml(document.getElementById('group-name').value)} · ${date}</div>`;
+  sortedCats.forEach(cat => {
+    const contacts = cats[cat];
+    html += `<div class="wa-cat">
+      <div class="wa-cat-name">${CAT_ICONS[cat] || '📌'} ${escHtml(cat)}</div>
+      <div class="wa-links">`;
+    contacts.forEach(c => {
+      const slug = (c.name || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+      html += `<span class="wa-link">mentions.co.za/v/${slug}</span>`;
+    });
+    html += `</div></div>`;
+  });
+  html += `<div class="wa-footer">Full directory at mentions.co.za · tap any name to view their page</div>`;
+  bubble.innerHTML = html;
+  preview.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function openLandingPreview(contact) {
+  const slug = (contact.name || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+  const url = `landing-preview.html?name=${encodeURIComponent(contact.name)}&cat=${encodeURIComponent(contact.category||'')}&phone=${encodeURIComponent(contact.phone||'')}&desc=${encodeURIComponent(contact.description||'')}&mentions=${contact.mentions||0}&slug=${slug}`;
+  window.open(url, '_blank');
+}
+
+function showToast(msg) {
+  let t = document.getElementById('toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1D9E75;color:white;font-size:13px;font-weight:500;padding:10px 20px;border-radius:20px;z-index:9999;transition:opacity 0.3s;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  setTimeout(() => { t.style.opacity = '0'; }, 2200);
+}
+</script>
+</body>
+</html>
