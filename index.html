@@ -306,74 +306,26 @@ async function runParse() {
   const groupName = document.getElementById('group-name').value || 'Mentions';
   const detail = document.getElementById('detail-level').value;
 
-  const excerpt = chatText.slice(0, 28000);
 
-  const systemPrompt = `You are a contact extractor for mentions.co.za, a local business directory powered by WhatsApp chat exports from the Plettenberg Bay area (South Africa).
-
-Extract every vendor, service provider, and business mentioned in the chat. Return ONLY valid JSON — no markdown, no preamble, no explanation.
-
-Return this structure:
-{
-  "group": "<group name>",
-  "extracted_at": "<ISO date>",
-  "contacts": [
-    {
-      "name": "<business name>",
-      "category": "<one of: Restaurants, Groceries & Farm, Services, Arts & Shops, Pets & Care, Community, Tech, Health & Medical, Other>",
-      "type": "<one of: vendor, service, business>",
-      "phone": "<phone number or null>",
-      "email": "<email or null>",
-      "website": "<website or null>",
-      "address": "<address or null>",
-      "description": "<1-2 sentence description from context or null>",
-      "tags": ["<tag1>", "<tag2>"],
-      "mentions": <integer count of how many times this entity is mentioned>,
-      "sentiment": "<positive, neutral, or mixed>"
-    }
-  ]
-}
-
-Rules:
-- Only extract real businesses, vendors, services — not personal names unless they are operating as a service (e.g. "Benson Handyman")
-- If a phone number appears near a business name, assign it
-- Count how many distinct messages mention each business
-- Categories must be exactly as listed above
-- Return only JSON, nothing else`;
-
-  const userPrompt = `Group name: ${groupName}
-Detail level: ${detail}
-
-Chat export:
-${excerpt}`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('/api/parse', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 4000,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }]
+        chatText,
+        groupName,
+        detail
       })
     });
 
     if (!res.ok) {
       const err = await res.json();
-      throw new Error(err.error?.message || 'API error ' + res.status);
+      throw new Error(err.error || 'API error ' + res.status);
     }
 
     setStatus('Processing results…');
-    const data = await res.json();
-    const raw = data.content.map(b => b.text || '').join('');
-
-    let parsed;
-    try {
-      const clean = raw.replace(/```json|```/g, '').trim();
-      parsed = JSON.parse(clean);
-    } catch {
-      throw new Error('Could not parse Claude\'s response. Try again or use a shorter export.');
-    }
+    const parsed = await res.json();
 
     parsedContacts = parsed.contacts || [];
 
