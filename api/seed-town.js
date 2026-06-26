@@ -56,8 +56,16 @@ function getCategory(types = []) {
 async function searchPlaces(query, location, radius = 10000) {
   const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&location=${location}&radius=${radius}&key=${GOOGLE_KEY}`;
   const res = await fetch(url);
-  const data = await res.json();
-  return data.results || [];
+  const text = await res.text();
+  try {
+    const data = JSON.parse(text);
+    if (data.status && data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
+      throw new Error(`Google API error: ${data.status} — ${data.error_message || ''}`);
+    }
+    return data.results || [];
+  } catch(e) {
+    throw new Error(`Google response invalid: ${text.slice(0, 100)}`);
+  }
 }
 
 async function getPlaceDetails(placeId) {
