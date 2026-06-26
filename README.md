@@ -2,7 +2,7 @@
 
 ## What changed
 
-The original build called the Anthropic API directly from the browser — that fails on Vercel because there's no API key. This version adds a serverless function (`/api/parse.js`) that makes the API call securely from the server side.
+The original build called the  Anthropic API directly from the browser — that fails on Vercel because there's no API key. This version adds a serverless function (`/api/parse.js`) that makes the API call securely from the server side.
 
 ```
 mentions-vercel/
