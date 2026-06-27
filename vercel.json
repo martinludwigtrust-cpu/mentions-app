@@ -1,8 +1,0 @@
-{
-  "rewrites": [
-    { "source": "/upload", "destination": "/upload.html" },
-    { "source": "/admin/seed", "destination": "/admin-seed.html" },
-    { "source": "/:town/v/:slug", "destination": "/vendor.html" },
-    { "source": "/:town", "destination": "/town.html" }
-  ]
-}
