@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>mentions.co.za · seed towns</title>
+<style>
+  :root{--t400:#1D9E75;--t600:#0F6E56;--t50:#E1F5EE;--t100:#9FE1CB;--bg:#fff;--bg2:#F8F7F4;--text:#1a1a18;--text2:#5F5E5A;--text3:#888780;--bd:rgba(0,0,0,0.1);--r:10px;--rl:14px;}
+  @media(prefers-color-scheme:dark){:root{--bg:#1c1c1a;--bg2:#242422;--text:#e8e6df;--text2:#9e9c95;--text3:#666460;--bd:rgba(255,255,255,0.1);}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg2);color:var(--text);min-height:100vh;}
+  .topbar{background:var(--bg);border-bottom:0.5px solid var(--bd);padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+  .wordmark{font-size:15px;font-weight:600;color:var(--t600);}
+  .wordmark span{color:var(--t400);}
+  .main{max-width:600px;margin:0 auto;padding:32px 20px 60px;}
+  h1{font-size:22px;font-weight:600;letter-spacing:-0.02em;margin-bottom:6px;}
+  .sub{font-size:14px;color:var(--text2);margin-bottom:28px;line-height:1.5;}
+  .card{background:var(--bg);border:0.5px solid var(--bd);border-radius:var(--rl);padding:20px;margin-bottom:16px;}
+  .field{margin-bottom:14px;}
+  label{font-size:12px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:6px;}
+  select,input[type=text],input[type=number]{width:100%;font-size:14px;color:var(--text);background:var(--bg2);border:0.5px solid var(--bd);border-radius:7px;padding:9px 12px;outline:none;}
+  select:focus,input:focus{border-color:var(--t400);}
+  .coord-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .seed-btn{width:100%;padding:13px;background:var(--t400);color:#fff;border:none;border-radius:var(--r);font-size:15px;font-weight:600;cursor:pointer;transition:background 0.12s;}
+  .seed-btn:hover{background:var(--t600);}
+  .seed-btn:disabled{background:var(--text3);cursor:not-allowed;}
+  .log{background:var(--bg2);border:0.5px solid var(--bd);border-radius:var(--r);padding:14px 16px;font-size:13px;font-family:monospace;line-height:1.7;margin-top:16px;min-height:60px;display:none;white-space:pre-wrap;}
+  .log.visible{display:block;}
+  .log-ok{color:var(--t400);}
+  .log-err{color:#D85A30;}
+  .log-info{color:var(--text2);}
+  .progress{height:6px;background:var(--bd);border-radius:3px;margin-top:12px;overflow:hidden;display:none;}
+  .progress.visible{display:block;}
+  .progress-fill{height:100%;background:var(--t400);border-radius:3px;width:0%;transition:width 0.3s;}
+  .town-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px;}
+  .town-btn{padding:10px 12px;background:var(--bg2);border:0.5px solid var(--bd);border-radius:var(--r);font-size:12px;font-weight:500;cursor:pointer;text-align:left;transition:border-color 0.1s;}
+  .town-btn:hover{border-color:var(--t100);}
+  .town-btn.seeded{border-color:var(--t400);background:var(--t50);}
+  .town-name{color:var(--text);display:block;}
+  .town-coords{color:var(--text3);font-size:11px;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="wordmark">mentions<span>.co.za</span> · <span style="font-weight:400;color:var(--text3)">admin</span></div>
+  <a href="/" style="font-size:12px;color:var(--text3);text-decoration:none;">← home</a>
+</div>
+<div class="main">
+  <h1>Seed a town</h1>
+  <p class="sub">Pull real businesses from Google Places and populate a town directory instantly. Each business is saved as a grey listing until it receives a mention or the vendor claims it.</p>
+
+  <div class="card">
+    <div class="field">
+      <label>Quick select — RSA towns</label>
+      <div class="town-grid" id="town-grid"></div>
+    </div>
+    <div class="field" style="margin-top:14px">
+      <label>Town slug (URL path)</label>
+      <input type="text" id="town-slug" placeholder="e.g. plett">
+    </div>
+    <div class="field">
+      <label>Town name (for Google search)</label>
+      <input type="text" id="town-name" placeholder="e.g. Plettenberg Bay">
+    </div>
+    <div class="coord-row">
+      <div class="field">
+        <label>Latitude</label>
+        <input type="number" id="lat" placeholder="-33.9846" step="0.0001">
+      </div>
+      <div class="field">
+        <label>Longitude</label>
+        <input type="number" id="lng" placeholder="23.3752" step="0.0001">
+      </div>
+    </div>
+    <button class="seed-btn" id="seed-btn" onclick="seedTown()">🌱 Seed this town from Google Places</button>
+    <div class="progress" id="progress"><div class="progress-fill" id="progress-fill"></div></div>
+    <div class="log" id="log"></div>
+  </div>
+</div>
+
+<script>
+const TOWNS = [
+  {slug:'plett',name:'Plettenberg Bay',lat:-33.9846,lng:23.3752},
+  {slug:'knysna',name:'Knysna',lat:-34.0352,lng:23.0465},
+  {slug:'george',name:'George',lat:-33.9608,lng:22.4617},
+  {slug:'hermanus',name:'Hermanus',lat:-34.4187,lng:19.2345},
+  {slug:'stellenbosch',name:'Stellenbosch',lat:-33.9321,lng:18.8602},
+  {slug:'franschhoek',name:'Franschhoek',lat:-33.9167,lng:19.1167},
+  {slug:'mossel-bay',name:'Mossel Bay',lat:-34.1831,lng:22.1408},
+  {slug:'wilderness',name:'Wilderness',lat:-33.9948,lng:22.5878},
+  {slug:'jeffreys-bay',name:'Jeffreys Bay',lat:-34.0548,lng:24.9301},
+  {slug:'ballito',name:'Ballito',lat:-29.5390,lng:31.2117},
+  {slug:'cape-town',name:'Cape Town',lat:-33.9249,lng:18.4241},
+  {slug:'durban',name:'Durban',lat:-29.8587,lng:31.0218}
+];
+
+const grid = document.getElementById('town-grid');
+TOWNS.forEach(t => {
+  const btn = document.createElement('button');
+  btn.className = 'town-btn';
+  btn.innerHTML = `<span class="town-name">${t.name}</span><span class="town-coords">${t.lat}, ${t.lng}</span>`;
+  btn.onclick = () => {
+    document.getElementById('town-slug').value = t.slug;
+    document.getElementById('town-name').value = t.name;
+    document.getElementById('lat').value = t.lat;
+    document.getElementById('lng').value = t.lng;
+    document.querySelectorAll('.town-btn').forEach(b => b.classList.remove('active'));
+    btn.style.borderColor = 'var(--t400)';
+    btn.style.background = 'var(--t50)';
+  };
+  grid.appendChild(btn);
+});
+
+async function seedTown() {
+  const town_slug = document.getElementById('town-slug').value.trim();
+  const town_name = document.getElementById('town-name').value.trim();
+  const lat = parseFloat(document.getElementById('lat').value);
+  const lng = parseFloat(document.getElementById('lng').value);
+
+  if (!town_slug || !town_name || !lat || !lng) {
+    alert('Please fill in all fields or select a town above.');
+    return;
+  }
+
+  const btn = document.getElementById('seed-btn');
+  const log = document.getElementById('log');
+  const progress = document.getElementById('progress');
+  const fill = document.getElementById('progress-fill');
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Seeding — this takes 1-2 minutes…';
+  log.className = 'log visible';
+  progress.className = 'progress visible';
+  fill.style.width = '10%';
+  log.innerHTML = `<span class="log-info">Starting seed for ${town_name}…\nSearching Google Places for businesses…</span>\n`;
+
+  const interval = setInterval(() => {
+    const current = parseFloat(fill.style.width);
+    if (current < 85) fill.style.width = (current + 5) + '%';
+  }, 3000);
+
+  try {
+    const res = await fetch('/api/seed-town', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ town_slug, town_name, lat, lng })
+    });
+    const data = await res.json();
+    clearInterval(interval);
+    fill.style.width = '100%';
+
+    if (data.error) {
+      log.innerHTML += `<span class="log-err">Error: ${data.error}</span>\n`;
+    } else {
+      log.innerHTML += `<span class="log-ok">✓ Done!\n✓ ${data.saved} businesses saved\n✓ ${data.skipped} duplicates skipped</span>\n`;
+      if (data.errors && data.errors.length) {
+        log.innerHTML += `<span class="log-err">${data.errors.length} errors: ${data.errors.map(e=>e.name||e.type).join(', ')}</span>\n`;
+      }
+      log.innerHTML += `\n<span class="log-info">View town: </span><a href="/${town_slug}" style="color:var(--t400)">mentions.co.za/${town_slug}</a>`;
+    }
+  } catch(e) {
+    clearInterval(interval);
+    log.innerHTML += `<span class="log-err">Failed: ${e.message}</span>\n`;
+  }
+
+  btn.disabled = false;
+  btn.textContent = '🌱 Seed this town from Google Places';
+}
+</script>
+</body>
+</html>
