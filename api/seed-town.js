@@ -1,6 +1,5 @@
 const SUPABASE_URL = 'https://irvmktpyvcxndyenqjwb.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_ohu7nt7hNBhYC9XEPMOKwg_HZ2ISu8h';
-const GOOGLE_KEY = process.env.GOOGLE_PLACES_KEY;
 
 const STOP_WORDS = ['and','the','of','a','an','at','by','for','in','on','to',
   'cafe','restaurant','grill','bar','shop','store','studio','services','service',
@@ -18,62 +17,195 @@ function makeSlug(name) {
 }
 
 const CATEGORY_MAP = {
-  'restaurant':'Restaurants','cafe':'Restaurants','bakery':'Restaurants',
-  'bar':'Restaurants','grocery_or_supermarket':'Groceries & Farm',
-  'supermarket':'Groceries & Farm','electrician':'Services',
-  'car_repair':'Services','beauty_salon':'Health & Medical',
-  'pharmacy':'Health & Medical','doctor':'Health & Medical',
-  'clothing_store':'Arts & Shops','art_gallery':'Arts & Shops',
-  'veterinary_care':'Pets & Care','school':'Community','church':'Community'
+  'restaurants': 'Restaurants',
+  'cafes': 'Restaurants',
+  'coffee': 'Restaurants',
+  'takeaways': 'Restaurants',
+  'bakeries': 'Restaurants',
+  'groceries': 'Groceries & Farm',
+  'supermarkets': 'Groceries & Farm',
+  'farm stalls': 'Groceries & Farm',
+  'butchers': 'Groceries & Farm',
+  'hardware': 'Services',
+  'plumbers': 'Services',
+  'electricians': 'Services',
+  'builders': 'Services',
+  'painters': 'Services',
+  'plumbing': 'Services',
+  'electrical': 'Services',
+  'construction': 'Services',
+  'cleaning': 'Services',
+  'galleries': 'Arts & Shops',
+  'art': 'Arts & Shops',
+  'clothing': 'Arts & Shops',
+  'gifts': 'Arts & Shops',
+  'furniture': 'Arts & Shops',
+  'vets': 'Pets & Care',
+  'pet': 'Pets & Care',
+  'doctors': 'Health & Medical',
+  'pharmacies': 'Health & Medical',
+  'dentists': 'Health & Medical',
+  'beauty': 'Health & Medical',
+  'salons': 'Health & Medical',
+  'spa': 'Health & Medical',
+  'schools': 'Community',
+  'churches': 'Community',
+  'accommodation': 'Other',
+  'guesthouses': 'Other',
+  'estate agents': 'Other',
+  'attorneys': 'Other',
+  'accountants': 'Other'
 };
 
-function getCategory(types = []) {
-  for (const t of types) { if (CATEGORY_MAP[t]) return CATEGORY_MAP[t]; }
+function getCategory(keyword) {
+  const k = keyword.toLowerCase();
+  for (const [key, cat] of Object.entries(CATEGORY_MAP)) {
+    if (k.includes(key)) return cat;
+  }
   return 'Other';
 }
+
+// Parse yep.co.za HTML to extract business listings
+function parseYepHTML(html, category) {
+  const businesses = [];
+  
+  // Extract business cards using regex patterns
+  // Each business card contains name, address, phone
+  const namePattern = /<h[23][^>]*class="[^"]*(?:business|listing|company)[^"]*"[^>]*>([^<]+)<\/h[23]>/gi;
+  const altNamePattern = /class="[^"]*(?:biz-name|business-name|listing-name)[^"]*"[^>]*>([^<]+)</gi;
+  
+  // Look for structured data or meta patterns
+  const jsonLdPattern = /<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi;
+  let jsonMatch;
+  
+  while ((jsonMatch = jsonLdPattern.exec(html)) !== null) {
+    try {
+      const data = JSON.parse(jsonMatch[1]);
+      const items = Array.isArray(data) ? data : [data];
+      
+      for (const item of items) {
+        if (item['@type'] === 'LocalBusiness' || item['@type'] === 'Restaurant' || 
+            item['@type'] === 'Store' || item.name) {
+          const name = item.name;
+          if (!name) continue;
+          
+          businesses.push({
+            name: name.trim(),
+            phone: item.telephone || null,
+            email: item.email || null,
+            address: item.address ? 
+              (typeof item.address === 'string' ? item.address : 
+               [item.address.streetAddress, item.address.addressLocality, item.address.postalCode]
+               .filter(Boolean).join(', ')) : null,
+            website: item.url || null,
+            description: item.description || null,
+            category
+          });
+        }
+      }
+    } catch(e) {}
+  }
+
+  // Fallback: parse HTML cards directly
+  if (businesses.length === 0) {
+    // Match business listing blocks
+    const cardPattern = /class="[^"]*(?:card|listing|result|business)[^"]*"[\s\S]*?(?=class="[^"]*(?:card|listing|result|business)[^"]*"|$)/gi;
+    
+    // Simple name extraction from common patterns
+    const h3Pattern = /<(?:h2|h3|h4)[^>]*>([\s\S]*?)<\/(?:h2|h3|h4)>/gi;
+    const phonePattern = /(?:\+27|0)[\s-]?(?:\d[\s-]?){8,9}/g;
+    const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+    const addrPattern = /\d+\s+[A-Z][a-zA-Z\s]+(?:Street|St|Road|Rd|Avenue|Ave|Drive|Dr|Lane|Ln|Way|Place|Pl)[^<]*/g;
+
+    let h3Match;
+    while ((h3Match = h3Pattern.exec(html)) !== null) {
+      const rawName = h3Match[1].replace(/<[^>]+>/g, '').trim();
+      if (rawName.length > 2 && rawName.length < 80 && !rawName.match(/^\d+$/)) {
+        businesses.push({
+          name: rawName,
+          phone: null,
+          email: null,
+          address: null,
+          website: null,
+          description: null,
+          category
+        });
+      }
+    }
+
+    // Try to match phones to businesses
+    const phones = html.match(phonePattern) || [];
+    const emails = html.match(emailPattern) || [];
+    
+    businesses.forEach((b, i) => {
+      if (phones[i]) b.phone = phones[i].replace(/\s+/g, '');
+      if (emails[i]) b.email = emails[i];
+    });
+  }
+
+  return businesses;
+}
+
+const SEARCH_KEYWORDS = [
+  'restaurants', 'cafes', 'groceries', 'supermarkets',
+  'hardware', 'plumbers', 'electricians', 'builders',
+  'doctors', 'pharmacies', 'dentists', 'beauty salons',
+  'art galleries', 'clothing', 'accommodation', 'schools',
+  'vets', 'attorneys', 'estate agents', 'accountants'
+];
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { town_slug, town_name, lat, lng } = req.body;
-  if (!town_slug || !lat || !lng) return res.status(400).json({ error: 'Missing fields' });
-  if (!GOOGLE_KEY) return res.status(500).json({ error: 'GOOGLE_PLACES_KEY not set' });
+  const { town_slug, town_name, keyword_index = 0 } = req.body;
+  if (!town_slug || !town_name) return res.status(400).json({ error: 'Missing fields' });
 
-  const results = { saved: 0, skipped: 0, errors: [], log: [] };
+  const keyword = SEARCH_KEYWORDS[keyword_index];
+  if (!keyword) return res.status(200).json({ done: true });
+
+  const category = getCategory(keyword);
+  const results = { saved: 0, skipped: 0, errors: [], keyword, category };
 
   try {
-    // Single test query first
-    results.log.push('Starting Google search...');
-    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=businesses+in+${encodeURIComponent(town_name)}+South+Africa&location=${lat},${lng}&radius=15000&key=${GOOGLE_KEY}`;
+    const url = `https://mall.yep.co.za/serviceSearch?keyword=${encodeURIComponent(keyword)}&location=${encodeURIComponent(town_name)}`;
     
-    results.log.push('Fetching from Google...');
-    const response = await fetch(url);
-    
-    results.log.push(`HTTP status: ${response.status}`);
-    const text = await response.text();
-    results.log.push(`Response preview: ${text.slice(0, 80)}`);
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'text/html,application/xhtml+xml',
+        'Accept-Language': 'en-ZA,en;q=0.9'
+      }
+    });
 
-    const data = JSON.parse(text);
-    results.log.push(`Google status: ${data.status}, results: ${(data.results||[]).length}`);
-
-    if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
-      return res.status(200).json({ ...results, error: `Google: ${data.status} — ${data.error_message || ''}` });
+    if (!response.ok) {
+      return res.status(200).json({ ...results, error: `HTTP ${response.status}` });
     }
 
-    // Save each result
-    for (const place of (data.results || []).slice(0, 20)) {
-      const slug = makeSlug(place.name);
+    const html = await response.text();
+    results.html_length = html.length;
+
+    const businesses = parseYepHTML(html, category);
+    results.found = businesses.length;
+
+    for (const biz of businesses) {
+      if (!biz.name || biz.name.length < 2) continue;
+
+      const slug = makeSlug(biz.name);
       const record = {
-        name: place.name,
+        name: biz.name,
         slug,
         town_slug,
-        category: getCategory(place.types || []),
+        category: biz.category,
         type: 'business',
-        address: place.formatted_address || place.vicinity || null,
-        tags: (place.types || []).slice(0, 3),
+        phone: biz.phone || null,
+        email: biz.email || null,
+        website: biz.website || null,
+        address: biz.address || null,
+        description: biz.description || null,
+        tags: [keyword],
         mentions: 0,
         tier: 'grey',
-        source: 'google_places',
+        source: 'yep_co_za',
         updated_at: new Date().toISOString()
       };
 
@@ -91,25 +223,28 @@ export default async function handler(req, res) {
       if (saveRes.ok) results.saved++;
       else {
         const err = await saveRes.json();
-        results.errors.push({ name: place.name, error: err.message });
+        if (err.code === '23505') results.skipped++;
+        else results.errors.push({ name: biz.name, error: err.message });
       }
     }
 
-    // Mark town seeded
-    await fetch(`${SUPABASE_URL}/rest/v1/towns?slug=eq.${town_slug}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`
-      },
-      body: JSON.stringify({ seeded: true })
-    });
+    // Mark town seeded on last keyword
+    if (keyword_index >= SEARCH_KEYWORDS.length - 1) {
+      await fetch(`${SUPABASE_URL}/rest/v1/towns?slug=eq.${town_slug}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        },
+        body: JSON.stringify({ seeded: true })
+      });
+      results.done = true;
+    }
 
     return res.status(200).json({ town: town_slug, ...results });
 
   } catch(e) {
-    results.log.push(`Exception: ${e.message}`);
     return res.status(200).json({ ...results, error: e.message });
   }
 }
