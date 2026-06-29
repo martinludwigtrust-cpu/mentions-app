@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>mentions.co.za · seed towns</title>
+<style>
+  :root{--t400:#1D9E75;--t600:#0F6E56;--t50:#E1F5EE;--t100:#9FE1CB;--bg:#fff;--bg2:#F8F7F4;--text:#1a1a18;--text2:#5F5E5A;--text3:#888780;--bd:rgba(0,0,0,0.1);--r:10px;--rl:14px;}
+  @media(prefers-color-scheme:dark){:root{--bg:#1c1c1a;--bg2:#242422;--text:#e8e6df;--text2:#9e9c95;--text3:#666460;--bd:rgba(255,255,255,0.1);}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg2);color:var(--text);min-height:100vh;}
+  .topbar{background:var(--bg);border-bottom:0.5px solid var(--bd);padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;}
+  .wordmark{font-size:15px;font-weight:600;color:var(--t600);}
+  .wordmark span{color:var(--t400);}
+  .main{max-width:600px;margin:0 auto;padding:32px 20px 60px;}
+  h1{font-size:22px;font-weight:600;letter-spacing:-0.02em;margin-bottom:6px;}
+  .sub{font-size:14px;color:var(--text2);margin-bottom:28px;line-height:1.5;}
+  .card{background:var(--bg);border:0.5px solid var(--bd);border-radius:var(--rl);padding:20px;margin-bottom:16px;}
+  .field{margin-bottom:14px;}
+  label{font-size:12px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:6px;}
+  input[type=text]{width:100%;font-size:14px;color:var(--text);background:var(--bg2);border:0.5px solid var(--bd);border-radius:7px;padding:9px 12px;outline:none;}
+  input:focus{border-color:var(--t400);}
+  .seed-btn{width:100%;padding:13px;background:var(--t400);color:#fff;border:none;border-radius:var(--r);font-size:15px;font-weight:600;cursor:pointer;transition:background 0.12s;}
+  .seed-btn:hover{background:var(--t600);}
+  .seed-btn:disabled{background:var(--text3);cursor:not-allowed;}
+  .log{background:#111;color:#9FE1CB;border-radius:var(--r);padding:14px 16px;font-size:12px;font-family:monospace;line-height:1.8;margin-top:16px;min-height:60px;display:none;white-space:pre-wrap;}
+  .log.visible{display:block;}
+  .log-err{color:#F0997B;}
+  .log-ok{color:#9FE1CB;}
+  .log-info{color:#888;}
+  .progress{height:6px;background:var(--bd);border-radius:3px;margin-top:12px;overflow:hidden;display:none;}
+  .progress.visible{display:block;}
+  .progress-fill{height:100%;background:var(--t400);border-radius:3px;width:0%;transition:width 0.4s;}
+  .town-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px;}
+  .town-btn{padding:10px 12px;background:var(--bg2);border:0.5px solid var(--bd);border-radius:var(--r);font-size:12px;font-weight:500;cursor:pointer;text-align:left;transition:all 0.1s;}
+  .town-btn:hover{border-color:var(--t100);}
+  .town-btn.active{border-color:var(--t400);background:var(--t50);}
+  .town-name{color:var(--text);display:block;}
+  .town-slug{color:var(--text3);font-size:11px;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="wordmark">mentions<span>.co.za</span> · <span style="font-weight:400;color:var(--text3)">seed towns</span></div>
+  <a href="/" style="font-size:12px;color:var(--text3);text-decoration:none;">← home</a>
+</div>
+<div class="main">
+  <h1>Seed a town directory</h1>
+  <p class="sub">Scrapes yep.co.za for local businesses and saves them to the Mentions directory as grey listings. Each business lights up when it receives its first mention.</p>
+
+  <div class="card">
+    <div class="field">
+      <label>Quick select</label>
+      <div class="town-grid" id="town-grid"></div>
+    </div>
+    <div class="field">
+      <label>Town slug</label>
+      <input type="text" id="town-slug" placeholder="e.g. plett">
+    </div>
+    <div class="field">
+      <label>Town name (as it appears on yep.co.za)</label>
+      <input type="text" id="town-name" placeholder="e.g. Plettenberg Bay">
+    </div>
+    <button class="seed-btn" id="seed-btn" onclick="seedTown()">🌱 Seed from yep.co.za</button>
+    <div class="progress" id="progress"><div class="progress-fill" id="progress-fill"></div></div>
+    <div class="log" id="log"></div>
+  </div>
+</div>
+
+<script>
+const TOWNS = [
+  {slug:'plett',name:'Plettenberg Bay'},
+  {slug:'knysna',name:'Knysna'},
+  {slug:'george',name:'George'},
+  {slug:'hermanus',name:'Hermanus'},
+  {slug:'stellenbosch',name:'Stellenbosch'},
+  {slug:'franschhoek',name:'Franschhoek'},
+  {slug:'mossel-bay',name:'Mossel Bay'},
+  {slug:'wilderness',name:'Wilderness'},
+  {slug:'jeffreys-bay',name:'Jeffreys Bay'},
+  {slug:'ballito',name:'Ballito'},
+  {slug:'cape-town',name:'Cape Town'},
+  {slug:'durban',name:'Durban'}
+];
+
+const KEYWORDS = [
+  'restaurants','cafes','groceries','supermarkets',
+  'hardware','plumbers','electricians','builders',
+  'doctors','pharmacies','dentists','beauty salons',
+  'art galleries','clothing','accommodation','schools',
+  'vets','attorneys','estate agents','accountants'
+];
+
+const grid = document.getElementById('town-grid');
+TOWNS.forEach(t => {
+  const btn = document.createElement('button');
+  btn.className = 'town-btn';
+  btn.innerHTML = `<span class="town-name">${t.name}</span><span class="town-slug">/${t.slug}</span>`;
+  btn.onclick = () => {
+    document.querySelectorAll('.town-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('town-slug').value = t.slug;
+    document.getElementById('town-name').value = t.name;
+  };
+  grid.appendChild(btn);
+});
+
+function log(msg, type='info') {
+  const el = document.getElementById('log');
+  el.classList.add('visible');
+  el.innerHTML += `<span class="log-${type}">${msg}</span>\n`;
+  el.scrollTop = el.scrollHeight;
+}
+
+function setProgress(pct) {
+  document.getElementById('progress').classList.add('visible');
+  document.getElementById('progress-fill').style.width = pct + '%';
+}
+
+async function seedTown() {
+  const town_slug = document.getElementById('town-slug').value.trim();
+  const town_name = document.getElementById('town-name').value.trim();
+  if (!town_slug || !town_name) { alert('Please select or fill in a town.'); return; }
+
+  const btn = document.getElementById('seed-btn');
+  const logEl = document.getElementById('log');
+  btn.disabled = true;
+  logEl.innerHTML = '';
+  logEl.classList.add('visible');
+
+  log(`Starting seed for ${town_name} from yep.co.za…`, 'info');
+  log(`Running ${KEYWORDS.length} category searches…`, 'info');
+
+  let totalSaved = 0;
+  let totalSkipped = 0;
+  let totalFound = 0;
+
+  for (let i = 0; i < KEYWORDS.length; i++) {
+    setProgress(Math.round(((i + 1) / KEYWORDS.length) * 95));
+    log(`Searching: ${KEYWORDS[i]}…`, 'info');
+
+    try {
+      const res = await fetch('/api/seed-town', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ town_slug, town_name, keyword_index: i })
+      });
+
+      if (!res.ok) {
+        log(`  HTTP error ${res.status}`, 'err');
+        continue;
+      }
+
+      const data = await res.json();
+
+      if (data.error) {
+        log(`  Error: ${data.error}`, 'err');
+        if (data.errors && data.errors.length) {
+          data.errors.slice(0,3).forEach(e => log(`    ${JSON.stringify(e)}`, 'err'));
+        }
+      } else {
+        totalFound += data.found || 0;
+        totalSaved += data.saved || 0;
+        totalSkipped += data.skipped || 0;
+        log(`  ✓ found ${data.found || 0} · saved ${data.saved || 0} · skipped ${data.skipped || 0}`, 'ok');
+      }
+    } catch(e) {
+      log(`  Failed: ${e.message}`, 'err');
+    }
+
+    await new Promise(r => setTimeout(r, 400));
+  }
+
+  setProgress(100);
+  log(``, 'info');
+  log(`✓ Seed complete for ${town_name}`, 'ok');
+  log(`✓ Total found: ${totalFound} · saved: ${totalSaved} · skipped: ${totalSkipped}`, 'ok');
+  log(`→ View directory: mentions.co.za/${town_slug}`, 'ok');
+  btn.disabled = false;
+  btn.textContent = '🌱 Seed another town';
+}
+</script>
+</body>
+</html>
