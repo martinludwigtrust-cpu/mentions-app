@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>mentions.co.za · import</title>
+<style>
+  :root{--t400:#1D9E75;--t600:#0F6E56;--t50:#E1F5EE;--t100:#9FE1CB;--bg:#fff;--bg2:#F8F7F4;--text:#1a1a18;--text2:#5F5E5A;--text3:#888780;--bd:rgba(0,0,0,0.1);--r:10px;--rl:14px;--amber:#EF9F27;--coral:#D85A30;}
+  @media(prefers-color-scheme:dark){:root{--bg:#1c1c1a;--bg2:#242422;--text:#e8e6df;--text2:#9e9c95;--text3:#666460;--bd:rgba(255,255,255,0.1);}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg2);color:var(--text);min-height:100vh;}
+  .topbar{background:var(--bg);border-bottom:0.5px solid var(--bd);padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+  .wordmark{font-size:15px;font-weight:600;color:var(--t600);}
+  .wordmark span{color:var(--t400);}
+  .main{max-width:720px;margin:0 auto;padding:32px 20px 60px;}
+  h1{font-size:22px;font-weight:600;letter-spacing:-0.02em;margin-bottom:6px;}
+  .sub{font-size:14px;color:var(--text2);margin-bottom:28px;line-height:1.6;}
+  .card{background:var(--bg);border:0.5px solid var(--bd);border-radius:var(--rl);padding:20px;margin-bottom:16px;}
+  .card-title{font-size:14px;font-weight:600;margin-bottom:14px;}
+  .field{margin-bottom:14px;}
+  label{font-size:12px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:6px;}
+  select,input[type=text]{width:100%;font-size:14px;color:var(--text);background:var(--bg2);border:0.5px solid var(--bd);border-radius:7px;padding:9px 12px;outline:none;}
+  select:focus,input:focus{border-color:var(--t400);}
+  .drop-zone{border:1.5px dashed var(--t100);border-radius:var(--rl);background:var(--t50);padding:32px 20px;text-align:center;cursor:pointer;transition:all 0.15s;margin-bottom:16px;}
+  .drop-zone:hover,.drop-zone.dragover{border-color:var(--t400);background:#d0f0e5;}
+  .drop-zone.has-file{border-style:solid;border-color:var(--t400);}
+  .drop-icon{font-size:32px;margin-bottom:8px;}
+  .drop-title{font-size:15px;font-weight:500;color:var(--t800);margin-bottom:4px;}
+  .drop-sub{font-size:13px;color:var(--t600);}
+  .drop-fname{font-size:12px;font-weight:500;color:var(--t600);margin-top:8px;}
+  .preview-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px;}
+  .preview-table th{background:var(--bg2);padding:8px 10px;text-align:left;font-weight:500;color:var(--text2);border-bottom:0.5px solid var(--bd);}
+  .preview-table td{padding:8px 10px;border-bottom:0.5px solid var(--bd);color:var(--text);}
+  .preview-table tr:last-child td{border-bottom:none;}
+  .preview-table .badge{font-size:10px;padding:2px 7px;border-radius:8px;background:var(--t50);color:var(--t600);font-weight:500;}
+  .import-btn{width:100%;padding:13px;background:var(--t400);color:#fff;border:none;border-radius:var(--r);font-size:15px;font-weight:600;cursor:pointer;transition:background 0.12s;margin-bottom:12px;}
+  .import-btn:hover{background:var(--t600);}
+  .import-btn:disabled{background:var(--text3);cursor:not-allowed;}
+  .log{background:#111;color:#9FE1CB;border-radius:var(--r);padding:14px 16px;font-size:12px;font-family:monospace;line-height:1.8;display:none;white-space:pre-wrap;max-height:300px;overflow-y:auto;}
+  .log.visible{display:block;}
+  .log-err{color:#F0997B;}
+  .log-ok{color:#9FE1CB;}
+  .log-info{color:#888;}
+  .progress{height:6px;background:var(--bd);border-radius:3px;margin-bottom:12px;overflow:hidden;display:none;}
+  .progress.visible{display:block;}
+  .progress-fill{height:100%;background:var(--t400);border-radius:3px;width:0%;transition:width 0.3s;}
+  .cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px;}
+  .cat-btn{padding:7px 10px;background:var(--bg2);border:0.5px solid var(--bd);border-radius:7px;font-size:12px;cursor:pointer;text-align:center;transition:all 0.1s;}
+  .cat-btn:hover{border-color:var(--t100);}
+  .cat-btn.active{background:var(--t50);border-color:var(--t400);color:var(--t600);font-weight:500;}
+  .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+  .stat{background:var(--bg2);border-radius:var(--r);padding:12px;text-align:center;}
+  .stat-n{font-size:22px;font-weight:600;color:var(--t400);}
+  .stat-l{font-size:11px;color:var(--text3);margin-top:2px;}
+  .town-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  input[type=file]{display:none;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="wordmark">mentions<span>.co.za</span> · <span style="font-weight:400;color:var(--text3)">import</span></div>
+  <a href="/" style="font-size:12px;color:var(--text3);text-decoration:none;">← home</a>
+</div>
+
+<div class="main">
+  <h1>Import from CSV</h1>
+  <p class="sub">Export businesses from yep.co.za using Data Miner, then upload the CSV here. Each business is saved as a grey listing — lighting up when it receives its first mention.</p>
+
+  <div class="card">
+    <div class="card-title">1 · Select town & category</div>
+    <div class="town-row">
+      <div class="field">
+        <label>Town</label>
+        <select id="town-slug">
+          <option value="plett">Plettenberg Bay</option>
+          <option value="knysna">Knysna</option>
+          <option value="george">George</option>
+          <option value="hermanus">Hermanus</option>
+          <option value="stellenbosch">Stellenbosch</option>
+          <option value="franschhoek">Franschhoek</option>
+          <option value="mossel-bay">Mossel Bay</option>
+          <option value="wilderness">Wilderness</option>
+          <option value="jeffreys-bay">Jeffreys Bay</option>
+          <option value="ballito">Ballito</option>
+          <option value="cape-town">Cape Town</option>
+          <option value="durban">Durban</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Category</label>
+        <select id="category">
+          <option value="Restaurants">🍽 Restaurants</option>
+          <option value="Groceries & Farm">🛒 Groceries & Farm</option>
+          <option value="Services">🔧 Services</option>
+          <option value="Arts & Shops">🎨 Arts & Shops</option>
+          <option value="Pets & Care">🐾 Pets & Care</option>
+          <option value="Health & Medical">🏥 Health & Medical</option>
+          <option value="Community">🌱 Community</option>
+          <option value="Tech">📡 Tech</option>
+          <option value="Other">📌 Other</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">2 · Upload CSV from Data Miner</div>
+    <div class="drop-zone" id="drop-zone" onclick="document.getElementById('csv-input').click()">
+      <div class="drop-icon">📄</div>
+      <div class="drop-title">Drop your CSV file here</div>
+      <div class="drop-sub">or click to browse · exported from Data Miner on yep.co.za</div>
+      <div class="drop-fname" id="drop-fname"></div>
+    </div>
+    <input type="file" id="csv-input" accept=".csv">
+  </div>
+
+  <div class="card" id="preview-card" style="display:none">
+    <div class="card-title">3 · Preview & import</div>
+    <div class="stats-row" id="stats-row"></div>
+    <div style="overflow-x:auto;margin-bottom:16px">
+      <table class="preview-table" id="preview-table"></table>
+    </div>
+    <div class="progress" id="progress"><div class="progress-fill" id="progress-fill"></div></div>
+    <button class="import-btn" id="import-btn" onclick="importAll()">⬆ Import all to mentions directory</button>
+    <div class="log" id="log"></div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://aplhpcwomndslvwqxyye.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFwbGhwY3dvbW5kc2x2d3F4eXllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzNzYwNTYsImV4cCI6MjA5Nzk1MjA1Nn0.FMAZzxtAEHymjHjbuNvrSA0tAHu75c_G6xA_noFKJV4';
+
+const STOP_WORDS = ['and','the','of','a','an','at','by','for','in','on','to',
+  'cafe','restaurant','grill','bar','shop','store','studio','services','service',
+  'solutions','trading','farm','garden','market','gallery','repairs',
+  'construction','mobile','internet','wifi','only','rescue','project',
+  'tree','elderly','aesthetics','ceramics','pottery','brewing','company','stall'];
+
+function makeSlug(name) {
+  const words = (name||'').toLowerCase()
+    .replace(/[^a-z0-9\s]/g,'').split(/\s+/)
+    .filter(w => w.length > 1 && !STOP_WORDS.includes(w));
+  return words.slice(0,2).join('').slice(0,14) ||
+    (name||'').replace(/[^a-z0-9]/gi,'').toLowerCase().slice(0,10);
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) return [];
+  const headers = lines[0].replace(/^\uFEFF/,'').split(',').map(h => h.trim().toLowerCase().replace(/"/g,''));
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+    const values = [];
+    let current = '';
+    let inQuotes = false;
+    for (let j = 0; j < line.length; j++) {
+      if (line[j] === '"') { inQuotes = !inQuotes; }
+      else if (line[j] === ',' && !inQuotes) { values.push(current.trim()); current = ''; }
+      else { current += line[j]; }
+    }
+    values.push(current.trim());
+    const row = {};
+    headers.forEach((h, idx) => { row[h] = values[idx] || ''; });
+    rows.push(row);
+  }
+  return rows;
+}
+
+function cleanAddress(addr) {
+  if (!addr) return null;
+  // Remove duplicate city names that yep.co.za often includes
+  return addr.replace(/, ZA$/, '').replace(/,\s*ZA$/, '').trim();
+}
+
+function filterByDistance(rows, maxKm = 50) {
+  return rows.filter(row => {
+    const dist = row.distance || '';
+    const km = parseFloat(dist);
+    return isNaN(km) || km <= maxKm;
+  });
+}
+
+let parsedRows = [];
+
+const dropZone = document.getElementById('drop-zone');
+const csvInput = document.getElementById('csv-input');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) loadCSV(file);
+});
+csvInput.addEventListener('change', e => { if (e.target.files[0]) loadCSV(e.target.files[0]); });
+
+function loadCSV(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const text = e.target.result;
+    const rows = parseCSV(text);
+    const filtered = filterByDistance(rows, 30);
+    parsedRows = filtered;
+    document.getElementById('drop-fname').textContent = '✓ ' + file.name + ' · ' + rows.length + ' rows loaded';
+    dropZone.classList.add('has-file');
+    showPreview(filtered, rows.length);
+  };
+  reader.readAsText(file);
+}
+
+function showPreview(rows, total) {
+  const card = document.getElementById('preview-card');
+  card.style.display = 'block';
+
+  const withLogo = rows.filter(r => r.logo && !r.logo.includes('seller_logo_default')).length;
+  document.getElementById('stats-row').innerHTML = `
+    <div class="stat"><div class="stat-n">${total}</div><div class="stat-l">total in CSV</div></div>
+    <div class="stat"><div class="stat-n">${rows.length}</div><div class="stat-l">within 30km</div></div>
+    <div class="stat"><div class="stat-n">${withLogo}</div><div class="stat-l">with logo</div></div>
+  `;
+
+  const preview = rows.slice(0, 8);
+  const table = document.getElementById('preview-table');
+  table.innerHTML = `
+    <thead><tr>
+      <th>Name</th><th>Address</th><th>Slug</th><th>Logo</th>
+    </tr></thead>
+    <tbody>${preview.map(r => `<tr>
+      <td><strong>${esc(r.name||'')}</strong></td>
+      <td style="color:var(--text2)">${esc(cleanAddress(r.address)||'')}</td>
+      <td><span class="badge">${makeSlug(r.name)}</span></td>
+      <td>${r.logo && !r.logo.includes('seller_logo_default') ? '✓' : '—'}</td>
+    </tr>`).join('')}</tbody>
+  `;
+
+  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function log(msg, type='info') {
+  const el = document.getElementById('log');
+  el.classList.add('visible');
+  el.innerHTML += `<span class="log-${type}">${msg}</span>\n`;
+  el.scrollTop = el.scrollHeight;
+}
+
+async function testSupabase() {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/towns?limit=1`, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Accept': 'application/json'
+      },
+      mode: 'cors'
+    });
+    const text = await res.text();
+    console.log('Supabase test:', res.status, text.slice(0, 100));
+    return res.ok;
+  } catch(e) {
+    console.error('Supabase connection failed:', e.message);
+    return false;
+  }
+}
+
+async function importAll() {
+  if (!parsedRows.length) return;
+  log('Testing Supabase connection…', 'info');
+  const connected = await testSupabase();
+  if (!connected) {
+    log('✗ Cannot reach Supabase — check browser console for details', 'err');
+    return;
+  }
+  log('✓ Supabase connected', 'ok');
+  const town_slug = document.getElementById('town-slug').value;
+  const category = document.getElementById('category').value;
+  const btn = document.getElementById('import-btn');
+  btn.disabled = true;
+
+  const logEl = document.getElementById('log');
+  logEl.innerHTML = '';
+  logEl.classList.add('visible');
+
+  document.getElementById('progress').classList.add('visible');
+
+  log(`Importing ${parsedRows.length} businesses to ${town_slug} · ${category}…`, 'info');
+
+  let saved = 0, skipped = 0, errors = 0;
+
+  for (let i = 0; i < parsedRows.length; i++) {
+    const row = parsedRows[i];
+    const name = (row.name || '').trim();
+    if (!name) continue;
+
+    const pct = Math.round(((i + 1) / parsedRows.length) * 100);
+    document.getElementById('progress-fill').style.width = pct + '%';
+
+    const hasLogo = row.logo && !row.logo.includes('seller_logo_default');
+    const slug = makeSlug(name);
+
+    const record = {
+      name,
+      slug,
+      town_slug,
+      category,
+      type: 'business',
+      phone: null,
+      email: null,
+      website: null,
+      address: cleanAddress(row.address) || null,
+      photo_url: hasLogo ? row.logo : null,
+      description: null,
+      tags: [category.toLowerCase()],
+      mentions: 0,
+      tier: 'grey',
+      source: 'yep_co_za',
+      updated_at: new Date().toISOString()
+    };
+
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/contacts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Prefer': 'resolution=merge-duplicates',
+          'Accept': 'application/json'
+        },
+        mode: 'cors',
+        body: JSON.stringify(record)
+      });
+
+      if (res.ok) {
+        saved++;
+        if (i < 5 || i === parsedRows.length - 1) {
+          log(`✓ ${name}`, 'ok');
+        } else if (i === 5) {
+          log(`… saving remaining businesses …`, 'info');
+        }
+      } else {
+        const err = await res.json();
+        errors++;
+        log(`✗ ${name}: ${err.message}`, 'err');
+      }
+    } catch(e) {
+      errors++;
+      log(`✗ ${name}: ${e.message}`, 'err');
+    }
+
+    await new Promise(r => setTimeout(r, 50));
+  }
+
+  log(``, 'info');
+  log(`✓ Done! ${saved} saved · ${skipped} skipped · ${errors} errors`, 'ok');
+  log(`→ View: mentions.co.za/${town_slug}`, 'ok');
+
+  btn.disabled = false;
+  btn.textContent = '✓ Import another CSV';
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>
